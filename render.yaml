@@ -2,7 +2,6 @@ services:
   - type: pserv
     name: ecommerce-db
     plan: free
-    ipAllowList: []
 
   - type: web
     name: ecommerce-api
@@ -42,6 +41,8 @@ services:
         value: "20"
       - key: DB_MAX_OVERFLOW
         value: "40"
+      - key: DB_POOL_TIMEOUT
+        value: "10"
       - key: REDIS_ENABLED
         value: "false"
       - key: RATE_LIMIT_ENABLED
