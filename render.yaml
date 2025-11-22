@@ -1,0 +1,52 @@
+services:
+  - type: pserv
+    name: ecommerce-db
+    plan: free
+    ipAllowList: []
+
+  - type: web
+    name: ecommerce-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.production
+    dockerContext: .
+    healthCheckPath: /health_check
+    envVars:
+      - key: POSTGRES_HOST
+        fromDatabase:
+          name: ecommerce-db
+          property: host
+      - key: POSTGRES_PORT
+        fromDatabase:
+          name: ecommerce-db
+          property: port
+      - key: POSTGRES_USER
+        fromDatabase:
+          name: ecommerce-db
+          property: user
+      - key: POSTGRES_PASSWORD
+        fromDatabase:
+          name: ecommerce-db
+          property: password
+      - key: POSTGRES_DB
+        fromDatabase:
+          name: ecommerce-db
+          property: database
+      - key: UVICORN_WORKERS
+        value: "2"
+      - key: LOG_LEVEL
+        value: "INFO"
+      - key: CORS_ORIGINS
+        value: "*"
+      - key: DB_POOL_SIZE
+        value: "20"
+      - key: DB_MAX_OVERFLOW
+        value: "40"
+      - key: REDIS_ENABLED
+        value: "false"
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_CALLS
+        value: "100"
+      - key: RATE_LIMIT_PERIOD
+        value: "60"
