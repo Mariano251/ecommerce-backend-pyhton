@@ -32,30 +32,34 @@ POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', 'postgres')
 PGSSLMODE = os.getenv('PGSSLMODE', 'prefer')  # SSL mode for PostgreSQL
 
 # High-performance connection pool configuration
-# For 400 concurrent requests with 4 workers: 400/4 = 100 connections per worker
-# Pool size + max_overflow should handle peak load
-POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '50'))  # Base pool size per worker
-MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '100'))  # Additional connections during peak
-POOL_TIMEOUT = int(os.getenv('DB_POOL_TIMEOUT', '10'))  # Wait time for connection (reduced for production)
-POOL_RECYCLE = int(os.getenv('DB_POOL_RECYCLE', '3600'))  # Recycle connections after 1 hour
+POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '50'))
+MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '100'))
+POOL_TIMEOUT = int(os.getenv('DB_POOL_TIMEOUT', '10'))
+POOL_RECYCLE = int(os.getenv('DB_POOL_RECYCLE', '3600'))
 
 # Build DATABASE_URI
 DATABASE_URI = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
 
-# Add SSL mode if required (for production environments like Render)
+# Add SSL mode to URI if required
 if PGSSLMODE and PGSSLMODE != 'disable':
     DATABASE_URI = f'{DATABASE_URI}?sslmode={PGSSLMODE}'
 
-# Create engine with optimized connection pooling for high concurrency
+# SSL arguments for psycopg2 connection
+connect_args = {}
+if PGSSLMODE == 'require':
+    connect_args = {"sslmode": "require"}
+
+# Create engine with optimized connection pooling
 engine = create_engine(
     DATABASE_URI,
-    pool_pre_ping=True,  # Verify connections before using (prevents stale connections)
-    pool_size=POOL_SIZE,  # Minimum number of connections in pool
-    max_overflow=MAX_OVERFLOW,  # Additional connections beyond pool_size
-    pool_timeout=POOL_TIMEOUT,  # Seconds to wait before giving up on connection
-    pool_recycle=POOL_RECYCLE,  # Recycle connections to prevent stale connections
-    echo=False,  # Disable SQL logging in production for performance
-    future=True,  # Use SQLAlchemy 2.0 style
+    connect_args=connect_args,
+    pool_pre_ping=True,
+    pool_size=POOL_SIZE,
+    max_overflow=MAX_OVERFLOW,
+    pool_timeout=POOL_TIMEOUT,
+    pool_recycle=POOL_RECYCLE,
+    echo=False,
+    future=True,
 )
 
 # SessionLocal class for creating new sessions
@@ -66,11 +70,6 @@ def get_db() -> Generator[Session, None, None]:
     """
     Dependency injection for database sessions.
     Creates a new session for each request and closes it when done.
-
-    Usage:
-        @app.get("/items")
-        def get_items(db: Session = Depends(get_db)):
-            return db.query(Item).all()
     """
     db = SessionLocal()
     try:
