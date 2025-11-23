@@ -29,6 +29,7 @@ POSTGRES_PORT = os.getenv('POSTGRES_PORT', '5432')
 POSTGRES_DB = os.getenv('POSTGRES_DB', 'postgres')
 POSTGRES_USER = os.getenv('POSTGRES_USER', 'postgres')
 POSTGRES_PASSWORD = os.getenv('POSTGRES_PASSWORD', 'postgres')
+PGSSLMODE = os.getenv('PGSSLMODE', 'prefer')  # ← NUEVA LÍNEA
 
 # High-performance connection pool configuration
 # For 400 concurrent requests with 4 workers: 400/4 = 100 connections per worker
@@ -38,7 +39,12 @@ MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '100'))  # Additional connection
 POOL_TIMEOUT = int(os.getenv('DB_POOL_TIMEOUT', '10'))  # Wait time for connection (reduced for production)
 POOL_RECYCLE = int(os.getenv('DB_POOL_RECYCLE', '3600'))  # Recycle connections after 1 hour
 
+# Build DATABASE_URI with SSL support
 DATABASE_URI = f'postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}'
+
+# Add SSL mode if required (for production environments like Render)
+if PGSSLMODE and PGSSLMODE != 'disable':
+    DATABASE_URI = f'{DATABASE_URI}?sslmode={PGSSLMODE}'
 
 # Create engine with optimized connection pooling for high concurrency
 engine = create_engine(
@@ -51,7 +57,6 @@ engine = create_engine(
     echo=False,  # Disable SQL logging in production for performance
     future=True,  # Use SQLAlchemy 2.0 style
 )
-
 # SessionLocal class for creating new sessions
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
